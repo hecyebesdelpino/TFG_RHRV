@@ -1,0 +1,255 @@
+---
+title: "TFG_R_Markdown"
+author: "Héctor Yebes del Pino"
+date: "24/04/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Setting the working directory
+```{r directory}
+setwd('/Users/hecyebesdelpino/Desktop/TFG/')
+library("RHRV")
+```
+
+Here we have another folders with examples, just for copy and paste in the console
+setwd('/Users/hecyebesdelpino/Desktop/TFG/normal-sinus-rhythm-rr-interval-database-1.0.0/')
+setwd('/Users/hecyebesdelpino/Desktop/TFG/apnea-ecg-database-1.0.0/')
+setwd('/Users/hecyebesdelpino/Desktop/TFG/mit-bih-normal-sinus-rhythm-database-1.0.0/')
+
+
+Creating HRV data
+```{r Create_HRV_Data}
+hrv.data = CreateHRVData()
+hrv.data = SetVerbose(hrv.data, TRUE)
+```
+
+Loading and ploting ecgs 
+```{r Loading_data}
+hrv.data = LoadBeatAscii(HRVData = hrv.data , RecordName = "example.beats", RecordPath = ".")
+plot(hrv.data$Beat$Time)
+hrv.data$Beat$Time
+hrv.data = BuildNIHR(hrv.data)
+PlotNIHR(hrv.data)
+```
+
+
+Whole example of process of loading and plotting data
+```{r example}
+setwd('/Users/hecyebesdelpino/Desktop/TFG/RHRV_2/vignettes/beatsFolder/')
+data("HRVData")
+data("HRVProcessedData")
+hrv.data = CreateHRVData()
+hrv.data = SetVerbose(hrv.data, TRUE)
+hrv.data = LoadBeatAscii(hrv.data , "example.beats")
+plot(hrv.data$Beat$Time)
+hrv.data$Beat$Time
+hrv.data = BuildNIHR(hrv.data)
+PlotNIHR(hrv.data)
+```
+
+
+Calculating time analysis, first of all we study all the possible options by
+changing the windows size.
+The size of a window is 300, we calculate the 1,2,5,10,20,50 percent
+We use 0 for the first one as it´s going to be the reference/control
+```{r TimeAnalysis}
+percent = c(0, 1, 2, 5, 10,20,50)
+windows_size = 300 - percent * 300 / 100 
+for (i in windows_size){
+print(i)
+hrv.data = CreateTimeAnalysis(hrv.data, size = i, interval = 7.8125)
+#quartz()
+#PlotNIHR(hrv.data, main = paste("Windows size:",i))
+#print(paste("Time Analysis of", i))
+#print(hrv.data$TimeAnalysis)
+}
+```
+
+
+
+A la hora de comparar los datos y poder sacar los porcentajes, no entiendo/no sé
+como restar directamente la lista de valores.
+Si cojo uno en específico por ejemplo "size" si se restan, pero al coger todo el
+vector, no lo hace. Lo he comprobado con un vector de ejemplo a y b, y c sí que
+se obtiene restando uno al otro
+
+Tambien me salen errores a la hora de leer los ECG, tanto de apnea como de normal
+sinus como de mit. Da igual el tipo de archivo, convertirlo a texto o abrirlo
+con cuaquier LoadBeat (ascii, RR.....)
+
+A la hora de sacar los p values, lo hacemos con un test parametrico? exactamente
+los valores que comparamos son las posiciones de los latidos?
+```{r Dudas_Abraham}
+Results = hrv.data$TimeAnalysis[[1]]$size - hrv.data$TimeAnalysis[[2]]$size
+Results_2 = hrv.data$TimeAnalysis[[1]]$ - hrv.data$TimeAnalysis[[2]]$
+Results_3 = hrv.data$TimeAnalysis[[1]] - hrv.data$TimeAnalysis[[2]]
+a = c(2,3,4)
+b = c(1,2,1)
+c = a-b
+c
+Results
+Results_2
+Results_3
+
+hrv.data = LoadBeatAscii(hrv.data, "nsr002.ecg")
+```
+
+Se muestran los resultados obtenidos del analisis en tiempo variando el tamaño
+de la ventana en 1,2,5,10,20 y 50%
+```{r Resultados_windows_time_analysis}
+for (k in 1:length(hrv.data$TimeAnalysis)){
+  print(paste("Size: ", hrv.data$TimeAnalysis[[k]]$size))
+  print(paste("SDNN: ", hrv.data$TimeAnalysis[[k]]$SDNN))
+  print(paste("SDANN: ",hrv.data$TimeAnalysis[[k]]$SDANN))
+  print(paste("SDNNIDX: ",hrv.data$TimeAnalysis[[k]]$SDNNIDX))
+  print(paste("pNN50: " ,hrv.data$TimeAnalysis[[k]]$pNN50))
+  print(paste("SDSD: ",hrv.data$TimeAnalysis[[k]]$SDSD))
+  print(paste("rMSSD: ",hrv.data$TimeAnalysis[[k]]$rMSSD))
+  print(paste("IRRR: ",hrv.data$TimeAnalysis[[k]]$IRRR))
+  print(paste("MADRR: ",hrv.data$TimeAnalysis[[k]]$MADRR))
+  print(paste("TINN: ",hrv.data$TimeAnalysis[[k]]$TINN))
+  print(paste("HRVi: ",hrv.data$TimeAnalysis[[k]]$HRVi))
+}
+```
+
+
+```{r Dataframe_resultados}
+SIZE = list()
+SDNN = list()
+SDANN = list()
+SDNNIDX = list()
+pNN50 = list()
+SDSD = list()
+rMSSD = list()
+IRRR = list()
+MADRR = list()
+TINN = list()
+HRVi = list()
+
+for (k in 1:length(hrv.data$TimeAnalysis)){
+SIZE = c(SIZE, hrv.data$TimeAnalysis[[k]]$size, recursive = TRUE, use.names = TRUE)
+SDNN = c(SDNN, hrv.data$TimeAnalysis[[k]]$SDNN, recursive = TRUE, use.names = TRUE)
+SDANN = c(SDANN, hrv.data$TimeAnalysis[[k]]$SDANN, recursive = TRUE, use.names = TRUE)
+SDNNIDX = c(SDNNIDX, hrv.data$TimeAnalysis[[k]]$SDNNIDX, recursive = TRUE, use.names = TRUE)
+pNN50 = c(pNN50, hrv.data$TimeAnalysis[[k]]$pNN50, recursive = TRUE, use.names = TRUE)
+SDSD = c(SDSD, hrv.data$TimeAnalysis[[k]]$SDSD, recursive = TRUE, use.names = TRUE)
+rMSSD = c(rMSSD, hrv.data$TimeAnalysis[[k]]$rMSSD, recursive = TRUE, use.names = TRUE)
+IRRR = c(IRRR, hrv.data$TimeAnalysis[[k]]$IRRR, recursive = TRUE, use.names = TRUE)
+MADRR = c(MADRR, hrv.data$TimeAnalysis[[k]]$MADRR, recursive = TRUE, use.names = TRUE)
+TINN = c(TINN, hrv.data$TimeAnalysis[[k]]$TINN, recursive = TRUE, use.names = TRUE)
+HRVi = c(HRVi, hrv.data$TimeAnalysis[[k]]$HRVi, recursive = TRUE, use.names = TRUE)
+}
+
+Results_dataframe = data.frame(SIZE, SDNN, SDANN, SDNNIDX, pNN50,SDSD, rMSSD, IRRR, MADRR, TINN, HRVi)
+
+```
+
+
+Representacion de los datos
+```{r Porcentaje_resultados_window_time_analysis}
+Results_dataframe
+
+par(mfrow=c(3,3))
+barplot(Results_dataframe$SIZE, main = "SIZE", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Size of the window", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$SDNN, main = "SDNN", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$SDANN, main = "SDANN", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$SDNNIDX, main = "SDNNIDX", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$SDSD, main = "SDSD", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$pNN50, main = "pNN50", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$IRRR, main = "IRRR", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$MADRR, main = "MADRR", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$TINN, main = "TINN", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$HRVi, main = "HRVi", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+barplot(Results_dataframe$rMSSD, main = "rMSSD", col = c("seagreen", rep("grey",length(Results_dataframe$SIZE)-1)), xlab = "Studies", ylab = "Value", names.arg = c("Control", 1:(length(Results_dataframe$SIZE)-1)))
+
+```
+
+
+
+```{r Porcentaje_resultados_window_time_analysis}
+Results_list = matrix(NA, nrow = 11, ncol = length(hrv.data$TimeAnalysis))
+for (k in 1:length(hrv.data$TimeAnalysis)){
+  Results_list[1,k] = (hrv.data$TimeAnalysis[[1]]$size - hrv.data$TimeAnalysis[[k]]$size) / hrv.data$TimeAnalysis[[1]]$size * 100 
+  Results_list[2,k] = (hrv.data$TimeAnalysis[[1]]$SDNN - hrv.data$TimeAnalysis[[k]]$SDNN) /  hrv.data$TimeAnalysis[[1]]$SDNN * 100 
+  Results_list[3,k] = (hrv.data$TimeAnalysis[[1]]$SDANN - hrv.data$TimeAnalysis[[k]]$SDANN) / hrv.data$TimeAnalysis[[1]]$SDANN * 100 
+  Results_list[4,k] = (hrv.data$TimeAnalysis[[1]]$SDNNIDX - hrv.data$TimeAnalysis[[k]]$SDNNIDX) / hrv.data$TimeAnalysis[[1]]$SDNNIDX * 100 
+  Results_list[5,k] = (hrv.data$TimeAnalysis[[1]]$pNN50 - hrv.data$TimeAnalysis[[k]]$pNN50) / hrv.data$TimeAnalysis[[1]]$pNN50 * 100 
+  Results_list[6,k] = (hrv.data$TimeAnalysis[[1]]$SDSD - hrv.data$TimeAnalysis[[k]]$SDSD) / hrv.data$TimeAnalysis[[1]]$SDSD * 100 
+  Results_list[7,k] = (hrv.data$TimeAnalysis[[1]]$rMSSD - hrv.data$TimeAnalysis[[k]]$rMSSD) / hrv.data$TimeAnalysis[[1]]$rMSSD * 100 
+  Results_list[8,k] = (hrv.data$TimeAnalysis[[1]]$IRRR - hrv.data$TimeAnalysis[[k]]$IRRR) / hrv.data$TimeAnalysis[[1]]$IRRR * 100 
+  Results_list[9,k] = (hrv.data$TimeAnalysis[[1]]$MADRR - hrv.data$TimeAnalysis[[k]]$MADRR) / hrv.data$TimeAnalysis[[1]]$MADRR * 100 
+  Results_list[10,k] = (hrv.data$TimeAnalysis[[1]]$TINN - hrv.data$TimeAnalysis[[k]]$TINN) / hrv.data$TimeAnalysis[[1]]$TINN * 100 
+  Results_list[11,k] = (hrv.data$TimeAnalysis[[1]]$HRVi - hrv.data$TimeAnalysis[[k]]$HRVi)/ hrv.data$TimeAnalysis[[1]]$HRVi * 100 
+}
+Results_list
+?hist
+
+```
+
+Como se puede observar, las unicas variaciones que tienen lugar cuando varíamos el tamaño
+de la ventana son los atributos 3 y 4 que corresponden con:
+SDANN y SDNNIDX
+
+
+-------------------------------
+Por Hacer:
+Cambiando la frequencia en el analisis
+1,2,5,20,50%
+Obtener un dataframe con estadisticas
+Poner los p-values en la memoria
+
+Cambiar los analisis, tipo fourier, periodogram, wavelet....
+-------------------------------
+
+
+Analisis en frecuencia variando 1,2,5,10,20,50%
+```{r Frequency_Analysis}
+percent = c(0, 1, 2, 5, 10,20,50)
+freq_size = 4 - percent * 4 / 100 
+for (i in freq_size){
+hrv.data = CreateFreqAnalysis(hrv.data, verbose = TRUE)  
+InterpolateNIHR(hrv.data, freqhr = i)
+#quartz() #windows()
+PlotNIHR(hrv.data, main = paste("Windows size:",i))
+print(i)
+print(paste("Frequency Analysis of", i))
+print(hrv.data$FreqAnalysis)
+}
+```
+
+
+
+Estadísticas,
+usando un t-test, no sé cuantas muestras poner para analizar el valor de SDANN
+Leyendo uno nuevo, comparamos los valores de los Beats
+```{r Statistics}
+t.test(hrv.data$Beat, mu = hrv.data$TimeAnalysis[[1]]$SDANN)
+```
+
+
+```{r Ecg_physionet}
+#setwd("/Users/hecyebesdelpino/Desktop/TFG/normal-sinus-rhythm-rr-interval-database-1.0.0/")
+ecg_data = CreateHRVData()
+SetVerbose(ecg_data, Verbose = TRUE)
+ecg_data = LoadBeatAscii(ecg_data, RecordName = "nsr002.ecg")
+plot(hrv.data$Beat$Time)
+hrv.data$Beat$Time
+hrv.data = BuildNIHR(hrv.data)
+PlotNIHR(hrv.data)
+
+```
