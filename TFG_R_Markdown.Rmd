@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Setting the working directory
 ```{r directory}
-setwd('/Users/hecyebesdelpino/Desktop/TFG/')
+setwd('/Users/hecyebesdelpino/Desktop/TFG/NormalEnTXT/')
 library("RHRV")
 ```
 
@@ -21,11 +21,133 @@ setwd('/Users/hecyebesdelpino/Desktop/TFG/normal-sinus-rhythm-rr-interval-databa
 setwd('/Users/hecyebesdelpino/Desktop/TFG/apnea-ecg-database-1.0.0/')
 setwd('/Users/hecyebesdelpino/Desktop/TFG/mit-bih-normal-sinus-rhythm-database-1.0.0/')
 
+```{r Function_Time_Analysis}
+function_Time_Analysis = function(hrv.data){
+percent = c(0, 1, 2, 5, 10,20,50, -1, -2, -5, -10,-20,-50)
+windows_size = 300 - percent * 300 / 100 
+for (i in windows_size){
+print(i)
+hrv.data = CreateTimeAnalysis(hrv.data, size = i, interval = 7.8125, verbose = FALSE)
+}
+return(hrv.data)
+}
+```
+
+```{r Function_Frequency_Analysis}
+function_Freq_Analysis = function(hrv.data){
+
+freq_size = c(4, 8,16)
+for (q in freq_size){
+hrv.data = CreateFreqAnalysis(hrv.data)
+hrv.data = BuildNIHR(hrv.data)
+hrv.data = FilterNIHR(hrv.data)
+print(paste("Length of Freq analysisisisis",length(hrv.data$FreqAnalysis)))
+hrv.data = InterpolateNIHR(hrv.data, freqhr = 4)
+PlotNIHR(hrv.data, main = paste("Windows size:",4))
+hrv.data = CalculatePowerBand(hrv.data , indexFreqAnalysis = length(hrv.data$FreqAnalysis),
+                     size = 300, shift = 30, type = "fourier",
+                     ULFmin = 0, ULFmax = 0.03, VLFmin = 0.03, VLFmax = 0.05,
+                     LFmin = 0.05, LFmax = 0.15, HFmin = 0.15, HFmax = 0.4 )
+print(paste("Length of Freq analysis",length(hrv.data$FreqAnalysis)))
+#print(q)
+print(paste("Frequency Analysis of", q))
+}
+return(hrv.data)
+
+}
+```
+
+Reading all the files in the TXT Folder of Normal sinus
+```{r Normal sinus in txt}
+library(purrr)
+url_archivos<- "/Users/hecyebesdelpino/Desktop/TFG/NormalEnTXT/"
+files_name <-list.files(path=url_archivos,pattern="*.txt")
+files_name_list<-as.list(files_name) 
+names(files_name_list)<-files_name
+beats_list = list()
+time_analysis_list = list()
+SIZE = list()
+SDNN = list()
+SDANN = list()
+SDNNIDX = list()
+pNN50 = list()
+SDSD = list()
+rMSSD = list()
+IRRR = list()
+MADRR = list()
+TINN = list()
+HRVi = list()
+NAMES = list()
+```
+
+```{r Study_of_normal_files}
+#for(i in 1: length(files_name_list)){
+for(i in 1:3){
+hrv.data = CreateHRVData()
+hrv.data = SetVerbose(hrv.data, TRUE)
+hrv.data = LoadBeatRR(hrv.data, files_name_list[[i]])
+hrv.data = BuildNIHR(hrv.data)
+#beats_list = c(beats_list, hrv.data$Beat, recursive = FALSE, use.names = FALSE)
+
+#Lo que hace esta funcion es un analisis en tiempo con los distintos tamaños de ventana
+#hrv.data = function_Time_Analysis(hrv.data)
+hrv.data = function_Freq_Analysis(hrv.data)
+#hrv.data = CreateTimeAnalysis(hrv.data, size = 300, interval = 7.8125, verbose = TRUE)
+#time_analysis_list = c(time_analysis_list, hrv.data$TimeAnalysis)
+    NAMES = c(NAMES, rep(files_name[[i]], 13), recursive = TRUE, use.names = TRUE)
+    for (k in 1:length(hrv.data$TimeAnalysis)){
+    SIZE = c(SIZE, hrv.data$TimeAnalysis[[k]]$size, recursive = TRUE, use.names = TRUE)
+    SDNN = c(SDNN, hrv.data$TimeAnalysis[[k]]$SDNN, recursive = TRUE, use.names = TRUE)
+    SDANN = c(SDANN, hrv.data$TimeAnalysis[[k]]$SDANN, recursive = TRUE, use.names = TRUE)
+    SDNNIDX = c(SDNNIDX, hrv.data$TimeAnalysis[[k]]$SDNNIDX, recursive = TRUE, use.names = TRUE)
+    pNN50 = c(pNN50, hrv.data$TimeAnalysis[[k]]$pNN50, recursive = TRUE, use.names = TRUE)
+    SDSD = c(SDSD, hrv.data$TimeAnalysis[[k]]$SDSD, recursive = TRUE, use.names = TRUE)
+    rMSSD = c(rMSSD, hrv.data$TimeAnalysis[[k]]$rMSSD, recursive = TRUE, use.names = TRUE)
+    IRRR = c(IRRR, hrv.data$TimeAnalysis[[k]]$IRRR, recursive = TRUE, use.names = TRUE)
+    MADRR = c(MADRR, hrv.data$TimeAnalysis[[k]]$MADRR, recursive = TRUE, use.names = TRUE)
+    TINN = c(TINN, hrv.data$TimeAnalysis[[k]]$TINN, recursive = TRUE, use.names = TRUE)
+    HRVi = c(HRVi, hrv.data$TimeAnalysis[[k]]$HRVi, recursive = TRUE, use.names = TRUE)
+    }
+    
+    Results_dataframe = data.frame(NAMES,SIZE, SDNN, SDANN, SDNNIDX, pNN50,SDSD, rMSSD, IRRR, MADRR, TINN, HRVi)
+
+#remove(hrv.data)
+}
+```
+
+
+
+
+Calculating time analysis, first of all we study all the possible options by
+changing the windows size.
+The size of a window is 300, we calculate the 1,2,5,10,20,50 percent
+We use 0 for the first one as it´s going to be the reference/control
+```{r TimeAnalysis}
+percent = c(0, 1, 2, 5, 10,20,50)
+windows_size = 300 - percent * 300 / 100 
+for (i in windows_size){
+print(i)
+hrv.data = CreateTimeAnalysis(hrv.data, size = i, interval = 7.8125)
+}
+```
+
+#leemos los archivos
+ archivos <- map(files2010_list, function(x) { 
+                  read_csv(paste(url_archivos,x,sep=""), 
+                           col_types = cols(`Media movil PM10` = 
+                           col_number(),
+                           PM10 = col_number(), 
+                          `PM2.5` = col_number(), 
+                           Year = col_number(),
+                           date = col_character()))
+               })
+
 
 Creating HRV data
 ```{r Create_HRV_Data}
 hrv.data = CreateHRVData()
 hrv.data = SetVerbose(hrv.data, TRUE)
+hrv.data = LoadBeatAscii(hrv.data, RecordName ="nsr001_rr_secs.txt")
 ```
 
 Loading and ploting ecgs 
@@ -53,22 +175,7 @@ PlotNIHR(hrv.data)
 ```
 
 
-Calculating time analysis, first of all we study all the possible options by
-changing the windows size.
-The size of a window is 300, we calculate the 1,2,5,10,20,50 percent
-We use 0 for the first one as it´s going to be the reference/control
-```{r TimeAnalysis}
-percent = c(0, 1, 2, 5, 10,20,50)
-windows_size = 300 - percent * 300 / 100 
-for (i in windows_size){
-print(i)
-hrv.data = CreateTimeAnalysis(hrv.data, size = i, interval = 7.8125)
-#quartz()
-#PlotNIHR(hrv.data, main = paste("Windows size:",i))
-#print(paste("Time Analysis of", i))
-#print(hrv.data$TimeAnalysis)
-}
-```
+
 
 
 
